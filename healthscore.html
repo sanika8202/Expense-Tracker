@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Score — ExpenseAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --border: #2a2a3a; --accent: #7c6cfc; --accent2: #fc6cc8;
+    --accent3: #6cfcd8; --text: #f0effe; --muted: #7a7a9a;
+    --success: #4ade80; --error: #f87171; --warning: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  body::before {
+    content: ''; position: fixed;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,108,252,0.08) 0%, transparent 70%);
+    top: -200px; right: -200px; border-radius: 50%; pointer-events: none;
+  }
+  body::after {
+    content: ''; position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(108,252,216,0.06) 0%, transparent 70%);
+    bottom: -200px; left: -200px; border-radius: 50%; pointer-events: none;
+  }
+ 
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 40px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 9px; display: flex; align-items: center;
+    justify-content: center; font-size: 16px;
+  }
+  .logo h1 {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-user  { font-size: 13px; color: var(--accent3); font-weight: 500; }
+  .btn-nav {
+    padding: 8px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-nav:hover { border-color: var(--accent); color: var(--text); }
+  .btn-logout {
+    padding: 8px 14px; background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.2); border-radius: 10px;
+    color: #f87171; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-logout:hover { background: rgba(248,113,113,0.2); }
+ 
+  /* ── MAIN ── */
+  .main { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+ 
+  /* ── PAGE HEADER ── */
+  .page-header {
+    text-align: center; margin-bottom: 40px;
+    animation: fadeUp 0.6s ease both;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .page-header h2 {
+    font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .page-header p { font-size: 14px; color: var(--muted); }
+ 
+  /* ── SCORE CIRCLE CARD ── */
+  .score-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 28px; padding: 44px 40px;
+    text-align: center; margin-bottom: 24px;
+    position: relative; overflow: hidden;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .score-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+  }
+ 
+  /* SVG CIRCLE */
+  .circle-wrap { position: relative; display: inline-block; margin-bottom: 24px; }
+  .score-svg { width: 200px; height: 200px; transform: rotate(-90deg); }
+  .score-bg {
+    fill: none; stroke: var(--surface2); stroke-width: 12;
+  }
+  .score-fill {
+    fill: none; stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 502;
+    stroke-dashoffset: 502;
+    transition: stroke-dashoffset 1.4s cubic-bezier(0.16,1,0.3,1),
+                stroke 0.4s ease;
+  }
+ 
+  .circle-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .score-number {
+    font-family: 'Syne', sans-serif; font-size: 52px; font-weight: 800;
+    line-height: 1; letter-spacing: -2px;
+  }
+  .score-max { font-size: 16px; color: var(--muted); font-weight: 400; }
+ 
+  /* GRADE BADGE */
+  .grade-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px; border-radius: 99px;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+    letter-spacing: 0.02em; margin-bottom: 12px;
+    animation: popIn 0.5s 1.2s both;
+  }
+  @keyframes popIn { from{transform:scale(0.7);opacity:0} to{transform:scale(1);opacity:1} }
+ 
+  .grade-excellent { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
+  .grade-good      { background: rgba(124,108,252,0.12); color: #7c6cfc; border: 1px solid rgba(124,108,252,0.25); }
+  .grade-fair      { background: rgba(251,191,36,0.12);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+  .grade-poor      { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.25); }
+ 
+  .score-message { font-size: 14px; color: var(--muted); margin-top: 4px; }
+ 
+  /* ── FACTOR CARDS ── */
+  .factors-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .factor-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 22px 24px;
+    position: relative; overflow: hidden;
+  }
+  .factor-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .fc-budget::before     { background: linear-gradient(90deg, var(--accent), #9c6cfc); }
+  .fc-consistency::before{ background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .fc-diversity::before  { background: linear-gradient(90deg, var(--accent2), var(--warning)); }
+  .fc-savings::before    { background: linear-gradient(90deg, var(--success), var(--accent3)); }
+ 
+  .factor-top {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 14px;
+  }
+  .factor-icon { font-size: 28px; margin-bottom: 4px; }
+  .factor-name {
+    font-family: 'Syne', sans-serif; font-size: 13px;
+    font-weight: 700; color: var(--text);
+  }
+  .factor-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .factor-score {
+    font-family: 'Syne', sans-serif; font-size: 28px;
+    font-weight: 800; text-align: right; line-height: 1;
+  }
+  .factor-score .fs-max { font-size: 13px; font-weight: 400; color: var(--muted); }
+ 
+  /* MINI PROGRESS BAR */
+  .factor-bar-bg {
+    height: 6px; background: var(--border);
+    border-radius: 99px; overflow: hidden;
+  }
+  .factor-bar-fill {
+    height: 100%; border-radius: 99px;
+    transition: width 1.2s cubic-bezier(0.16,1,0.3,1);
+    width: 0%;
+  }
+ 
+  /* ── TIPS CARD ── */
+  .tips-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 28px 28px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .tips-card::before {
+    content: ''; display: block; height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    margin: -28px -28px 24px -28px; border-radius: 20px 20px 0 0;
+  }
+  .tips-title {
+    font-family: 'Syne', sans-serif; font-size: 16px;
+    font-weight: 700; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tips-list { display: flex; flex-direction: column; gap: 12px; }
+  .tip-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 14px 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .tip-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 6px;
+  }
+  .tip-text { font-size: 13px; line-height: 1.65; color: var(--text); }
+  .tip-text strong { color: var(--accent2); font-weight: 600; }
+ 
+  /* NO BUDGET WARNING */
+  .no-budget-warn {
+    background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 14px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; color: var(--warning);
+    margin-bottom: 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .no-budget-warn a {
+    color: var(--accent3); text-decoration: none; font-weight: 600;
+    margin-left: 4px;
+  }
+  .no-budget-warn a:hover { text-decoration: underline; }
+ 
+  /* REFRESH BTN */
+  .btn-refresh {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #9c6cfc);
+    border: none; border-radius: 12px; color: white;
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 20px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .btn-refresh:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,108,252,0.4); }
+ 
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    .factors-grid { grid-template-columns: 1fr; }
+    .header { padding: 14px 16px; }
+    .main   { padding: 24px 14px; }
+    .score-card { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+ 
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">💸</div>
+    <h1>ExpenseAI</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-user" id="headerUser"></span>
+    <button class="btn-nav" onclick="window.location.href='index.html'">+ Add</button>
+    <button class="btn-nav" onclick="window.location.href='dashboard.html'">📊 Dashboard</button>
+    <button class="btn-nav" onclick="window.location.href='budget.html'">🎯 Budget</button>
+    <button class="btn-nav" onclick="window.location.href='AIAdvice.html'">🤖 AI</button>
+    <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+  </div>
+</div>
+ 
+<div class="main">
+ 
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <h2>💚 Financial Health Score</h2>
+    <p>Your personalized score based on budget, spending habits & savings</p>
+  </div>
+ 
+  <!-- NO BUDGET WARNING (shown if no budget set) -->
+  <div class="no-budget-warn" id="noBudgetWarn" style="display:none">
+    ⚠️ No budget set for this month — score may be lower.
+    <a href="budget.html">Set a budget →</a>
+  </div>
+ 
+  <!-- SCORE CIRCLE CARD -->
+  <div class="score-card">
+    <div class="circle-wrap">
+      <svg class="score-svg" viewBox="0 0 180 180">
+        <circle class="score-bg" cx="90" cy="90" r="80"/>
+        <circle class="score-fill" id="scoreFill" cx="90" cy="90" r="80"/>
+      </svg>
+      <div class="circle-center">
+        <div class="score-number" id="scoreNumber">0</div>
+        <div class="score-max">/100</div>
+      </div>
+    </div>
+ 
+    <div>
+      <div class="grade-badge" id="gradeBadge">⏳ Calculating…</div>
+    </div>
+    <div class="score-message" id="scoreMessage">Analyzing your financial data…</div>
+  </div>
+ 
+  <!-- FACTOR CARDS -->
+  <div class="factors-grid">
+ 
+    <div class="factor-card fc-budget">
+      <div class="factor-top">
+        <div>
+          <div class="factor-icon">🎯</div>
+          <div class="factor-name">Budget Usage</div>
+          <div class="factor-desc">How well you stay within budget</div>
+        </div>
+        <div class="factor-score">
+          <span id="fBudgetScore">0</span>
+          <span class="fs-max">/35</span>
+        </div>
+      </div>
+      <div class="factor-bar-bg">
+        <div class="factor-bar-fill" id="fBudgetBar"
+             style="background:linear-gradient(90deg,#7c6cfc,#9c6cfc)"></div>
+      </div>
+    </div>
+ 
+    <div class="factor-card fc-consistency">
+      <div class="factor-top">
+        <div>
+          <div class="factor-icon">📊</div>
+          <div class="factor-name">Consistency</div>
+          <div class="factor-desc">Even daily spending (no big spikes)</div>
+        </div>
+        <div class="factor-score">
+          <span id="fConsistencyScore">0</span>
+          <span class="fs-max">/25</span>
+        </div>
+      </div>
+      <div class="factor-bar-bg">
+        <div class="factor-bar-fill" id="fConsistencyBar"
+             style="background:linear-gradient(90deg,#6cfcd8,#7c6cfc)"></div>
+      </div>
+    </div>
+ 
+    <div class="factor-card fc-diversity">
+      <div class="factor-top">
+        <div>
+          <div class="factor-icon">🌈</div>
+          <div class="factor-name">Category Diversity</div>
+          <div class="factor-desc">Balanced spending across categories</div>
+        </div>
+        <div class="factor-score">
+          <span id="fDiversityScore">0</span>
+          <span class="fs-max">/20</span>
+        </div>
+      </div>
+      <div class="factor-bar-bg">
+        <div class="factor-bar-fill" id="fDiversityBar"
+             style="background:linear-gradient(90deg,#fc6cc8,#fbbf24)"></div>
+      </div>
+    </div>
+ 
+    <div class="factor-card fc-savings">
+      <div class="factor-top">
+        <div>
+          <div class="factor-icon">💰</div>
+          <div class="factor-name">Savings Rate</div>
+          <div class="factor-desc">Budget remaining = money saved</div>
+        </div>
+        <div class="factor-score">
+          <span id="fSavingsScore">0</span>
+          <span class="fs-max">/20</span>
+        </div>
+      </div>
+      <div class="factor-bar-bg">
+        <div class="factor-bar-fill" id="fSavingsBar"
+             style="background:linear-gradient(90deg,#4ade80,#6cfcd8)"></div>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- TIPS -->
+  <div class="tips-card">
+    <div class="tips-title">💡 Personalized Tips</div>
+    <div class="tips-list" id="tipsList">
+      <div class="tip-item">
+        <div class="tip-dot" style="background:var(--muted)"></div>
+        <div class="tip-text">Analyzing your data…</div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- REFRESH -->
+  <button class="btn-refresh" onclick="loadScore()">🔄 Recalculate Score</button>
+ 
+</div>
+ 
+<script>
+  const CIRCUMFERENCE = 2 * Math.PI * 80; // 502.65
+ 
+  window.onload = function () {
+    const user = sessionStorage.getItem('userName');
+    const uid  = sessionStorage.getItem('userId');
+    if (!user) { window.location.href = 'login.html'; return; }
+    document.getElementById('headerUser').textContent = 'Hi, ' + user + ' 👋';
+    loadScore();
+  };
+ 
+  function loadScore() {
+    // Reset UI
+    animateScore(0);
+    document.getElementById('gradeBadge').className  = 'grade-badge';
+    document.getElementById('gradeBadge').textContent = '⏳ Calculating…';
+    document.getElementById('scoreMessage').textContent = 'Analyzing your financial data…';
+ 
+    const uid   = sessionStorage.getItem('userId') || 1;
+    const now   = new Date();
+    const month = now.getMonth() + 1;
+    const year  = now.getFullYear();
+ 
+    // Fetch both expenses and budget in parallel
+    Promise.all([
+      fetch('GetExpensesServlet').then(r => r.json()),
+      fetch(`SetBudgetServlet?month=${month}&year=${year}&userId=${uid}`)
+        .then(r => r.json())
+        .catch(() => ({ amount: 0 }))
+    ])
+    .then(([expenses, budgetData]) => {
+      const budget = budgetData.amount || 0;
+ 
+      // Filter this month's expenses
+      const thisMonth = expenses.filter(e => {
+        if (!e.date) return false;
+        const d = new Date(e.date);
+        return (d.getMonth() + 1) === month && d.getFullYear() === year;
+      });
+ 
+      if (budget === 0) {
+        document.getElementById('noBudgetWarn').style.display = 'flex';
+      } else {
+        document.getElementById('noBudgetWarn').style.display = 'none';
+      }
+ 
+      calculateAndRender(thisMonth, budget, expenses);
+    })
+    .catch(() => {
+      document.getElementById('scoreMessage').textContent = '❌ Error loading data. Try again.';
+    });
+  }
+ 
+  function calculateAndRender(thisMonth, budget, allExpenses) {
+    const totalSpent = thisMonth.reduce((s, e) => s + e.amount, 0);
+ 
+    // ── FACTOR 1: Budget Usage (35 pts) ──
+    let fBudget = 0;
+    if (budget > 0) {
+      const usage = totalSpent / budget;
+      if      (usage <= 0.5)  fBudget = 35;
+      else if (usage <= 0.7)  fBudget = 30;
+      else if (usage <= 0.85) fBudget = 22;
+      else if (usage <= 1.0)  fBudget = 14;
+      else if (usage <= 1.2)  fBudget = 6;
+      else                    fBudget = 0;
+    } else {
+      // No budget set — give partial score based on expense count
+      fBudget = thisMonth.length > 0 ? 10 : 5;
+    }
+ 
+    // ── FACTOR 2: Consistency (25 pts) ──
+    // Calculate coefficient of variation of daily spending
+    let fConsistency = 25;
+    if (thisMonth.length > 1) {
+      const daily = {};
+      thisMonth.forEach(e => {
+        const d = new Date(e.date).getDate();
+        daily[d] = (daily[d] || 0) + e.amount;
+      });
+      const vals  = Object.values(daily);
+      const mean  = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const std   = Math.sqrt(vals.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / vals.length);
+      const cv    = mean > 0 ? std / mean : 0; // coefficient of variation
+      if      (cv <= 0.3) fConsistency = 25;
+      else if (cv <= 0.6) fConsistency = 20;
+      else if (cv <= 1.0) fConsistency = 13;
+      else if (cv <= 1.5) fConsistency = 7;
+      else                fConsistency = 2;
+    } else if (thisMonth.length === 0) {
+      fConsistency = 15; // neutral
+    }
+ 
+    // ── FACTOR 3: Category Diversity (20 pts) ──
+    const cats = new Set(thisMonth.map(e => e.category).filter(Boolean));
+    const numCats = cats.size;
+    let fDiversity = 0;
+    if      (numCats >= 5) fDiversity = 20;
+    else if (numCats === 4) fDiversity = 17;
+    else if (numCats === 3) fDiversity = 13;
+    else if (numCats === 2) fDiversity = 8;
+    else if (numCats === 1) fDiversity = 4;
+    else                    fDiversity = 0;
+ 
+    // ── FACTOR 4: Savings Rate (20 pts) ──
+    let fSavings = 0;
+    if (budget > 0) {
+      const savingsRate = (budget - totalSpent) / budget;
+      if      (savingsRate >= 0.5)  fSavings = 20;
+      else if (savingsRate >= 0.3)  fSavings = 17;
+      else if (savingsRate >= 0.15) fSavings = 12;
+      else if (savingsRate >= 0.0)  fSavings = 7;
+      else                          fSavings = 0;
+    } else {
+      fSavings = 10; // neutral when no budget
+    }
+ 
+    // ── TOTAL SCORE ──
+    const total = Math.min(fBudget + fConsistency + fDiversity + fSavings, 100);
+ 
+    // ── RENDER ──
+    setTimeout(() => {
+      animateScore(total);
+      renderGrade(total);
+      renderFactors(fBudget, fConsistency, fDiversity, fSavings);
+      renderTips(total, fBudget, fConsistency, fDiversity, fSavings, budget, totalSpent, thisMonth);
+    }, 200);
+  }
+ 
+  // ── ANIMATE SCORE CIRCLE ──
+  function animateScore(target) {
+    const fill   = document.getElementById('scoreFill');
+    const numEl  = document.getElementById('scoreNumber');
+    const offset = CIRCUMFERENCE - (target / 100) * CIRCUMFERENCE;
+ 
+    // Color based on score
+    let color;
+    if      (target >= 80) color = '#4ade80';
+    else if (target >= 60) color = '#7c6cfc';
+    else if (target >= 40) color = '#fbbf24';
+    else                   color = '#f87171';
+ 
+    fill.style.stroke          = color;
+    fill.style.strokeDashoffset = offset;
+    numEl.style.color           = color;
+ 
+    // Count up number
+    let current = 0;
+    const step  = target / 60;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      numEl.textContent = Math.round(current);
+      if (current >= target) clearInterval(timer);
+    }, 16);
+  }
+ 
+  // ── GRADE BADGE ──
+  function renderGrade(score) {
+    const badge = document.getElementById('gradeBadge');
+    const msg   = document.getElementById('scoreMessage');
+ 
+    if (score >= 80) {
+      badge.className   = 'grade-badge grade-excellent';
+      badge.textContent = '🟢 Excellent';
+      msg.textContent   = 'Outstanding financial habits! Keep it up.';
+    } else if (score >= 60) {
+      badge.className   = 'grade-badge grade-good';
+      badge.textContent = '🟣 Good';
+      msg.textContent   = 'You\'re doing well. Small improvements can push you higher!';
+    } else if (score >= 40) {
+      badge.className   = 'grade-badge grade-fair';
+      badge.textContent = '🟡 Fair';
+      msg.textContent   = 'Room for improvement. Check your tips below.';
+    } else {
+      badge.className   = 'grade-badge grade-poor';
+      badge.textContent = '🔴 Poor';
+      msg.textContent   = 'Your finances need attention. Follow the tips below.';
+    }
+  }
+ 
+  // ── FACTOR BARS ──
+  function renderFactors(fB, fC, fD, fS) {
+    const animate = (id, barId, val, max) => {
+      setTimeout(() => {
+        document.getElementById(id).textContent      = val;
+        document.getElementById(barId).style.width   = (val / max * 100) + '%';
+      }, 400);
+    };
+    animate('fBudgetScore',      'fBudgetBar',      fB, 35);
+    animate('fConsistencyScore', 'fConsistencyBar', fC, 25);
+    animate('fDiversityScore',   'fDiversityBar',   fD, 20);
+    animate('fSavingsScore',     'fSavingsBar',      fS, 20);
+  }
+ 
+  // ── PERSONALIZED TIPS ──
+  function renderTips(total, fB, fC, fD, fS, budget, spent, expenses) {
+    const tips = [];
+    const tipColors = ['#7c6cfc', '#fc6cc8', '#6cfcd8', '#fbbf24', '#4ade80'];
+ 
+    // Budget tip
+    if (budget === 0) {
+      tips.push('No budget set for this month. <strong>Set a monthly budget</strong> to unlock full scoring and better track your spending limits.');
+    } else {
+      const pct = (spent / budget * 100).toFixed(0);
+      if (fB <= 14) {
+        tips.push(`You've used <strong>${pct}% of your budget</strong> already. Consider cutting back on non-essential expenses for the rest of the month.`);
+      } else if (fB <= 22) {
+        tips.push(`You're at <strong>${pct}% of your budget</strong>. You're doing okay but stay mindful of upcoming expenses.`);
+      } else {
+        tips.push(`Great job! You've only used <strong>${pct}% of your budget</strong>. You're well within your spending limit.`);
+      }
+    }
+ 
+    // Consistency tip
+    if (fC <= 13) {
+      tips.push('Your daily spending has <strong>large spikes</strong> on some days. Try to spread purchases evenly throughout the month instead of bulk spending.');
+    } else if (fC <= 20) {
+      tips.push('Your spending is <strong>fairly consistent</strong>. Try to avoid surprise big purchases to improve this score further.');
+    } else {
+      tips.push('<strong>Excellent consistency!</strong> Your daily spending is very even — a great sign of disciplined financial habits.');
+    }
+ 
+    // Diversity tip
+    if (fD <= 4) {
+      tips.push('All your expenses fall in <strong>one category</strong>. Tracking across more categories (Bills, Travel, Entertainment) gives a clearer picture of your finances.');
+    } else if (fD <= 13) {
+      tips.push('You\'re tracking expenses in <strong>a few categories</strong>. Try to log all spending types — Food, Bills, Travel, Shopping, Entertainment — for better insights.');
+    } else {
+      tips.push('<strong>Well diversified!</strong> You\'re tracking expenses across multiple categories, giving you a complete view of your spending.');
+    }
+ 
+    // Savings tip
+    if (budget > 0) {
+      const saved    = budget - spent;
+      const saveRate = ((saved / budget) * 100).toFixed(0);
+      if (fS <= 7 && saved < 0) {
+        tips.push(`You've <strong>exceeded your budget by ₹${fmt(Math.abs(saved))}</strong>. Review your expenses and find areas to cut in the coming days.`);
+      } else if (fS <= 12) {
+        tips.push(`You have <strong>₹${fmt(saved)} (${saveRate}%) left</strong> in your budget. Try to save at least 20–30% of your monthly budget.`);
+      } else {
+        tips.push(`Excellent! You still have <strong>₹${fmt(saved)} (${saveRate}%) of your budget remaining</strong>. Consider investing or saving the surplus.`);
+      }
+    } else {
+      tips.push('Set a monthly budget to start tracking your <strong>savings rate</strong> — one of the most important indicators of financial health.');
+    }
+ 
+    // Bonus tip based on overall score
+    if (total >= 80) {
+      tips.push('🏆 <strong>Top tier!</strong> You\'re in the top financial health category. Keep maintaining these habits and consider setting a higher savings goal.');
+    } else if (total < 40) {
+      tips.push('📌 Start small — set a budget, track every rupee, and review your spending weekly. Consistent small steps lead to big financial improvements.');
+    }
+ 
+    // Render
+    const list = document.getElementById('tipsList');
+    list.innerHTML = tips.map((t, i) => `
+      <div class="tip-item" style="animation-delay:${i * 0.08}s">
+        <div class="tip-dot" style="background:${tipColors[i % tipColors.length]}"></div>
+        <div class="tip-text">${t}</div>
+      </div>
+    `).join('');
+  }
+ 
+  function fmt(n) {
+    return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0 });
+  }
+ 
+  function doLogout() {
+    sessionStorage.clear();
+    fetch('LogoutServlet').finally(() => { window.location.href = 'login.html'; });
+  }
+</script>
+</body>
+</html>

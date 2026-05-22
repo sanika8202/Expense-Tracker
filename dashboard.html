@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — ExpenseAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --border: #2a2a3a; --accent: #7c6cfc; --accent2: #fc6cc8;
+    --accent3: #6cfcd8; --text: #f0effe; --muted: #7a7a9a;
+    --success: #4ade80; --error: #f87171; --warning: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+  body::before {
+    content: ''; position: fixed; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,108,252,0.07) 0%, transparent 70%);
+    top: -200px; right: -200px; border-radius: 50%; pointer-events: none;
+  }
+ 
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 40px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 9px; display: flex; align-items: center;
+    justify-content: center; font-size: 16px;
+  }
+  .logo h1 {
+    font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-user { font-size: 13px; color: var(--accent3); font-weight: 500; }
+  .btn-nav {
+    padding: 8px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-nav:hover { border-color: var(--accent); color: var(--text); }
+  .btn-logout {
+    padding: 8px 14px; background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.2); border-radius: 10px;
+    color: #f87171; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-logout:hover { background: rgba(248,113,113,0.2); }
+ 
+  /* ── MAIN ── */
+  .main { max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+ 
+  /* ── STAT CARDS ── */
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-bottom: 28px;
+    animation: fadeIn 0.5s ease both;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px 24px; position: relative; overflow: hidden;
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.total::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .stat-card.count::before { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .stat-card.avg::before   { background: linear-gradient(90deg, var(--accent2), var(--warning)); }
+  .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+  .stat-card.total .stat-value { color: var(--accent); }
+  .stat-card.count .stat-value { color: var(--accent3); }
+  .stat-card.avg   .stat-value { color: var(--accent2); }
+ 
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title span {
+    font-size: 11px; font-weight: 400; color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+  }
+ 
+  /* ── CHARTS GRID ── */
+  .charts-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 28px;
+    animation: fadeIn 0.5s 0.1s ease both;
+  }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px; position: relative; overflow: hidden;
+  }
+  .chart-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .chart-card.doughnut::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .chart-card.bar::before      { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .chart-card.line::before     { background: linear-gradient(90deg, var(--accent2), var(--warning)); }
+ 
+  .chart-card.wide {
+    grid-column: 1 / -1;
+  }
+ 
+  .chart-wrap {
+    position: relative; height: 240px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chart-wrap.doughnut-wrap { height: 260px; }
+ 
+  /* Doughnut center text */
+  .doughnut-center {
+    position: absolute; text-align: center; pointer-events: none;
+  }
+  .doughnut-center .dc-value {
+    font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+    color: var(--text);
+  }
+  .doughnut-center .dc-label {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+ 
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+ 
+  /* No data */
+  .no-data {
+    height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--muted); font-size: 13px; gap: 8px;
+  }
+  .no-data .nd-icon { font-size: 32px; }
+ 
+  /* ── EXPENSE TABLE ── */
+  .table-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    animation: fadeIn 0.5s 0.2s ease both;
+  }
+  .table-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .table-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    transition: background 0.15s; animation: rowIn 0.3s ease both;
+  }
+  @keyframes rowIn { from{opacity:0} to{opacity:1} }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(124,108,252,0.04); }
+  td { padding: 14px 20px; font-size: 14px; }
+  .num-col   { font-family: 'Syne', sans-serif; font-size: 13px; color: var(--muted); }
+  .amount-col { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--accent3); font-size: 15px; }
+  .category-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .cat-Food          { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+  .cat-Travel        { background: rgba(96,165,250,0.12);  color: #60a5fa; }
+  .cat-Shopping      { background: rgba(244,114,182,0.12); color: #f472b6; }
+  .cat-Bills         { background: rgba(167,139,250,0.12); color: #a78bfa; }
+  .cat-Entertainment { background: rgba(52,211,153,0.12);  color: #34d399; }
+  .date-col { color: var(--muted); font-size: 13px; }
+  .btn-delete {
+    padding: 6px 12px; background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.2); border-radius: 8px;
+    color: var(--error); font-size: 12px; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-delete:hover { background: rgba(248,113,113,0.2); transform: scale(1.05); }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  #message { text-align: center; padding: 8px; font-size: 13px; color: var(--success); min-height: 20px; }
+ 
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+ 
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .stats        { grid-template-columns: 1fr; }
+    .charts-grid  { grid-template-columns: 1fr; }
+    .chart-card.wide { grid-column: 1; }
+    .header       { padding: 14px 16px; }
+    .main         { padding: 20px 12px; }
+  }
+</style>
+</head>
+<body>
+ 
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">💸</div>
+    <h1>ExpenseAI</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-user" id="headerUser"></span>
+    <button class="btn-nav" onclick="window.location.href='index.html'">+ Add</button>
+    <button class="btn-nav" onclick="window.location.href='budget.html'">🎯 Budget</button>
+    <button class="btn-nav" onclick="window.location.href='AIAdvice.html'">🤖 AI Advice</button>
+    <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+  </div>
+</div>
+ 
+<div class="main">
+ 
+  <!-- STAT CARDS -->
+  <div class="stats">
+    <div class="stat-card total">
+      <div class="stat-label">Total Spent</div>
+      <div class="stat-value" id="statTotal">₹0</div>
+    </div>
+    <div class="stat-card count">
+      <div class="stat-label">Expenses</div>
+      <div class="stat-value" id="statCount">0</div>
+    </div>
+    <div class="stat-card avg">
+      <div class="stat-label">Avg per Expense</div>
+      <div class="stat-value" id="statAvg">₹0</div>
+    </div>
+  </div>
+ 
+  <!-- CHARTS -->
+  <div class="section-title">
+    📊 Spending Analytics <span>based on all your expenses</span>
+  </div>
+ 
+  <div class="charts-grid">
+ 
+    <!-- DOUGHNUT — Category Breakdown -->
+    <div class="chart-card doughnut">
+      <div class="section-title" style="margin-bottom:12px">🍩 By Category</div>
+      <div class="chart-wrap doughnut-wrap">
+        <canvas id="doughnutChart"></canvas>
+        <div class="doughnut-center" id="doughnutCenter">
+          <div class="dc-value" id="dcTotal">₹0</div>
+          <div class="dc-label">Total</div>
+        </div>
+        <div class="no-data" id="doughnutEmpty" style="display:none">
+          <div class="nd-icon">🍩</div><div>No data yet</div>
+        </div>
+      </div>
+      <div class="legend" id="doughnutLegend"></div>
+    </div>
+ 
+    <!-- BAR — Monthly Comparison -->
+    <div class="chart-card bar">
+      <div class="section-title" style="margin-bottom:12px">📅 Monthly Spending</div>
+      <div class="chart-wrap">
+        <canvas id="barChart"></canvas>
+        <div class="no-data" id="barEmpty" style="display:none">
+          <div class="nd-icon">📅</div><div>No data yet</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- LINE — Daily Trend (wide) -->
+    <div class="chart-card line wide">
+      <div class="section-title" style="margin-bottom:12px">
+        📈 Daily Spending Trend
+        <span id="linePeriodLabel">this month</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="lineChart"></canvas>
+        <div class="no-data" id="lineEmpty" style="display:none">
+          <div class="nd-icon">📈</div><div>No expenses this month</div>
+        </div>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- EXPENSE TABLE -->
+  <div class="table-section">
+    <div class="table-header">
+      <div class="table-title">All Expenses</div>
+      <div id="message"></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Title</th><th>Amount</th>
+          <th>Category</th><th>Date</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="expenseBody">
+        <tr><td colspan="6">
+          <div class="empty-state"><div class="icon">⏳</div><p>Loading…</p></div>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+ 
+</div><!-- /main -->
+ 
+<script>
+  const catEmoji  = { Food:'🍔', Travel:'✈️', Shopping:'🛍️', Bills:'📄', Entertainment:'🎮' };
+  const catColors = ['#7c6cfc','#fc6cc8','#6cfcd8','#fbbf24','#60a5fa'];
+  const MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+ 
+  let doughnutInstance = null;
+  let barInstance      = null;
+  let lineInstance     = null;
+ 
+  // ── CHART DEFAULTS ──
+  Chart.defaults.color          = '#7a7a9a';
+  Chart.defaults.borderColor    = '#2a2a3a';
+  Chart.defaults.font.family    = 'DM Sans';
+ 
+  // ── ON LOAD ──
+  window.onload = function () {
+    const user = sessionStorage.getItem('userName');
+    if (!user) { window.location.href = 'login.html'; return; }
+    document.getElementById('headerUser').textContent = 'Hi, ' + user + ' 👋';
+    loadAll();
+  };
+ 
+  function loadAll() {
+    fetch('GetExpensesServlet')
+      .then(r => r.json())
+      .then(data => {
+        renderStats(data);
+        renderDoughnut(data);
+        renderBar(data);
+        renderLine(data);
+        renderTable(data);
+      })
+      .catch(() => {
+        document.getElementById('expenseBody').innerHTML =
+          `<tr><td colspan="6"><div class="empty-state"><div class="icon">❌</div>
+           <p>Error loading data</p></div></td></tr>`;
+      });
+  }
+ 
+  // ── STATS ──
+  function renderStats(data) {
+    if (!data.length) return;
+    const total = data.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('statTotal').textContent = '₹' + fmt(total);
+    document.getElementById('statCount').textContent = data.length;
+    document.getElementById('statAvg').textContent   = '₹' + fmt(total / data.length);
+  }
+ 
+  // ── DOUGHNUT: Category Breakdown ──
+  function renderDoughnut(data) {
+    const catTotals = {};
+    data.forEach(e => {
+      catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
+    });
+    const labels = Object.keys(catTotals);
+    const values = Object.values(catTotals);
+ 
+    if (!labels.length) {
+      document.getElementById('doughnutEmpty').style.display = 'flex';
+      document.getElementById('doughnutChart').style.display = 'none';
+      return;
+    }
+ 
+    const total = values.reduce((a, b) => a + b, 0);
+    document.getElementById('dcTotal').textContent = '₹' + fmt(total);
+ 
+    if (doughnutInstance) doughnutInstance.destroy();
+    doughnutInstance = new Chart(
+      document.getElementById('doughnutChart'),
+      {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: catColors.slice(0, labels.length),
+            borderColor: '#12121a',
+            borderWidth: 3,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          cutout: '68%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ₹${fmt(ctx.parsed)} (${((ctx.parsed/total)*100).toFixed(1)}%)`
+              }
+            }
+          },
+          animation: { animateRotate: true, duration: 900 }
+        }
+      }
+    );
+ 
+    // Custom legend
+    const legendEl = document.getElementById('doughnutLegend');
+    legendEl.innerHTML = labels.map((l, i) =>
+      `<div class="legend-item">
+        <div class="legend-dot" style="background:${catColors[i]}"></div>
+        <span>${catEmoji[l] || '📌'} ${l}</span>
+        <span style="color:var(--text);font-weight:600">₹${fmt(values[i])}</span>
+      </div>`
+    ).join('');
+  }
+ 
+  // ── BAR: Monthly Spending (last 6 months) ──
+  function renderBar(data) {
+    const now    = new Date();
+    const months = [];
+    const totals = [];
+ 
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(MONTHS[d.getMonth()] + ' ' + d.getFullYear().toString().slice(2));
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      const sum = data
+        .filter(e => {
+          if (!e.date) return false;
+          const ed = new Date(e.date);
+          return (ed.getMonth() + 1) === m && ed.getFullYear() === y;
+        })
+        .reduce((s, e) => s + e.amount, 0);
+      totals.push(sum);
+    }
+ 
+    if (totals.every(v => v === 0)) {
+      document.getElementById('barEmpty').style.display = 'flex';
+      document.getElementById('barChart').style.display = 'none';
+      return;
+    }
+ 
+    if (barInstance) barInstance.destroy();
+    barInstance = new Chart(
+      document.getElementById('barChart'),
+      {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{
+            label: 'Spent (₹)',
+            data: totals,
+            backgroundColor: months.map((_, i) =>
+              i === months.length - 1
+                ? 'rgba(124,108,252,0.85)'
+                : 'rgba(124,108,252,0.25)'
+            ),
+            borderColor: months.map((_, i) =>
+              i === months.length - 1
+                ? '#7c6cfc'
+                : 'rgba(124,108,252,0.4)'
+            ),
+            borderWidth: 1.5,
+            borderRadius: 8,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ` ₹${fmt(ctx.parsed.y)}` }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              grid: { color: 'rgba(42,42,58,0.8)' },
+              ticks: {
+                callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+              }
+            }
+          },
+          animation: { duration: 900 }
+        }
+      }
+    );
+  }
+ 
+  // ── LINE: Daily Trend (current month) ──
+  function renderLine(data) {
+    const now   = new Date();
+    const m     = now.getMonth() + 1;
+    const y     = now.getFullYear();
+    const days  = new Date(y, m, 0).getDate(); // days in month
+ 
+    // Build daily totals
+    const daily = {};
+    data
+      .filter(e => {
+        if (!e.date) return false;
+        const d = new Date(e.date);
+        return (d.getMonth() + 1) === m && d.getFullYear() === y;
+      })
+      .forEach(e => {
+        const day = new Date(e.date).getDate();
+        daily[day] = (daily[day] || 0) + e.amount;
+      });
+ 
+    if (!Object.keys(daily).length) {
+      document.getElementById('lineEmpty').style.display = 'flex';
+      document.getElementById('lineChart').style.display = 'none';
+      return;
+    }
+ 
+    // Only show up to today
+    const today   = now.getDate();
+    const labels  = [];
+    const values  = [];
+    for (let d = 1; d <= today; d++) {
+      labels.push(d + ' ' + MONTHS[m - 1]);
+      values.push(daily[d] || 0);
+    }
+ 
+    document.getElementById('linePeriodLabel').textContent =
+      MONTHS[m - 1] + ' ' + y;
+ 
+    if (lineInstance) lineInstance.destroy();
+    lineInstance = new Chart(
+      document.getElementById('lineChart'),
+      {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Daily Spend (₹)',
+            data: values,
+            borderColor: '#fc6cc8',
+            backgroundColor: 'rgba(252,108,200,0.08)',
+            pointBackgroundColor: '#fc6cc8',
+            pointBorderColor: '#12121a',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => ` ₹${fmt(ctx.parsed.y)}` }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { maxTicksLimit: 10 }
+            },
+            y: {
+              grid: { color: 'rgba(42,42,58,0.8)' },
+              ticks: {
+                callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+              }
+            }
+          },
+          animation: { duration: 900 }
+        }
+      }
+    );
+  }
+ 
+  // ── TABLE ──
+  function renderTable(data) {
+    const tbody = document.getElementById('expenseBody');
+    tbody.innerHTML = '';
+ 
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state"><div class="icon">🧾</div>
+        <p>No expenses yet. Add your first one!</p></div>
+      </td></tr>`;
+      return;
+    }
+ 
+    let total = 0;
+    data.forEach((e, i) => {
+      total += e.amount;
+      const row = document.createElement('tr');
+      row.style.animationDelay = (i * 0.03) + 's';
+      const cat = e.category || '';
+      row.innerHTML = `
+        <td class="num-col">${i + 1}</td>
+        <td><strong>${e.title}</strong></td>
+        <td class="amount-col">₹${fmtDec(e.amount)}</td>
+        <td><span class="category-badge cat-${cat}">${catEmoji[cat] || '📌'} ${cat}</span></td>
+        <td class="date-col">${formatDate(e.date)}</td>
+        <td><button class="btn-delete" onclick="deleteExpense(${e.id})">🗑 Delete</button></td>`;
+      tbody.appendChild(row);
+    });
+ 
+    document.getElementById('statTotal').textContent = '₹' + fmt(total);
+    document.getElementById('statCount').textContent = data.length;
+    document.getElementById('statAvg').textContent   = '₹' + fmt(total / data.length);
+  }
+ 
+  // ── DELETE ──
+  function deleteExpense(id) {
+    if (!confirm('Delete this expense?')) return;
+    fetch('DeleteExpenseServlet?id=' + id, { method: 'DELETE' })
+      .then(r => r.text())
+      .then(result => {
+        document.getElementById('message').textContent = '✓ ' + result;
+        loadAll(); // reload everything including charts
+        setTimeout(() => document.getElementById('message').textContent = '', 2500);
+      });
+  }
+ 
+  // ── HELPERS ──
+  function fmt(n) {
+    return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0 });
+  }
+  function fmtDec(n) {
+    return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  }
+  function formatDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+ 
+  function doLogout() {
+    sessionStorage.clear();
+    fetch('LogoutServlet').finally(() => { window.location.href = 'login.html'; });
+  }
+</script>
+</body>
+</html>

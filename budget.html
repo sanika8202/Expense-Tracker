@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget — ExpenseAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --border: #2a2a3a; --accent: #7c6cfc; --accent2: #fc6cc8;
+    --accent3: #6cfcd8; --text: #f0effe; --muted: #7a7a9a;
+    --success: #4ade80; --error: #f87171; --warning: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex;
+    flex-direction: column; align-items: center;
+    justify-content: center; padding: 24px;
+  }
+  body::before {
+    content: ''; position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(124,108,252,0.1) 0%, transparent 70%);
+    top: -150px; left: -150px; border-radius: 50%;
+    animation: blob1 9s ease-in-out infinite; pointer-events: none;
+  }
+  body::after {
+    content: ''; position: fixed;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(108,252,216,0.07) 0%, transparent 70%);
+    bottom: -100px; right: -100px; border-radius: 50%;
+    animation: blob2 12s ease-in-out infinite; pointer-events: none;
+  }
+  @keyframes blob1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(50px,30px)} }
+  @keyframes blob2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,-50px)} }
+ 
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 28px; padding: 44px 40px;
+    width: 100%; max-width: 500px;
+    position: relative; z-index: 1;
+    box-shadow: 0 0 80px rgba(124,108,252,0.07), 0 40px 80px rgba(0,0,0,0.5);
+    animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(32px)} to{opacity:1;transform:translateY(0)} }
+ 
+  /* TOP BAR */
+  .top-bar {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 32px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 9px; display: flex; align-items: center;
+    justify-content: center; font-size: 16px;
+  }
+  .logo-name {
+    font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .btn-nav {
+    padding: 8px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s; margin-left: 8px;
+  }
+  .btn-nav:hover { border-color: var(--accent); color: var(--text); }
+  .btn-logout {
+    padding: 8px 14px; background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.2); border-radius: 10px;
+    color: #f87171; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; cursor: pointer; transition: all 0.2s; margin-left: 8px;
+  }
+  .btn-logout:hover { background: rgba(248,113,113,0.2); }
+ 
+  /* HEADER */
+  .page-header { text-align: center; margin-bottom: 32px; }
+  .page-icon {
+    font-size: 44px; margin-bottom: 12px;
+    animation: bounceIn 0.6s 0.2s both;
+  }
+  @keyframes bounceIn {
+    0%{transform:scale(0.5);opacity:0}
+    70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1}
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  .page-sub { font-size: 13px; color: var(--muted); }
+ 
+  /* MONTH/YEAR SELECTOR */
+  .selectors {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 20px;
+  }
+  .field label {
+    display: block; font-size: 11px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  select, input[type="number"] {
+    width: 100%; padding: 12px 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none; -webkit-appearance: none;
+  }
+  select:focus, input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,108,252,0.15);
+  }
+  select option { background: var(--surface2); color: var(--text); }
+ 
+  .field { margin-bottom: 16px; }
+ 
+  /* BUDGET PROGRESS */
+  .budget-status {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .budget-status::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+  }
+  .budget-row {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 14px;
+  }
+  .budget-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .budget-value { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+  .budget-value.set   { color: var(--accent3); }
+  .budget-value.spent { color: var(--accent2); }
+  .budget-value.left  { color: var(--success); }
+  .budget-value.over  { color: var(--error); }
+ 
+  /* PROGRESS BAR */
+  .progress-wrap { margin-top: 4px; }
+  .progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--muted); margin-bottom: 6px;
+  }
+  .progress-bar-bg {
+    height: 8px; background: var(--border);
+    border-radius: 99px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 99px;
+    transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+  }
+  .progress-bar-fill.danger {
+    background: linear-gradient(90deg, var(--warning), var(--error));
+  }
+ 
+  /* STATUS BADGE */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; margin-top: 12px;
+  }
+  .badge-safe    { background: rgba(74,222,128,0.1); color: var(--success); border: 1px solid rgba(74,222,128,0.2); }
+  .badge-warning { background: rgba(251,191,36,0.1); color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-danger  { background: rgba(248,113,113,0.1); color: var(--error);   border: 1px solid rgba(248,113,113,0.2); }
+ 
+  /* SAVE BUTTON */
+  .btn-save {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #9c6cfc);
+    border: none; border-radius: 12px; color: white;
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 4px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-save:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,108,252,0.4); }
+  .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+ 
+  #message {
+    margin-top: 14px; text-align: center;
+    font-size: 13px; font-weight: 500; min-height: 20px;
+    padding: 10px; border-radius: 8px; display: none;
+  }
+  .msg-success {
+    display: block !important;
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.2);
+    color: var(--success);
+  }
+  .msg-error {
+    display: block !important;
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2);
+    color: var(--error);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+ 
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon">💸</div>
+      <div class="logo-name">ExpenseAI</div>
+    </div>
+    <div>
+      <button class="btn-nav" onclick="window.location.href='index.html'">+ Add</button>
+      <button class="btn-nav" onclick="window.location.href='dashboard.html'">📊 Dashboard</button>
+      <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </div>
+ 
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-icon">🎯</div>
+    <div class="page-title">Monthly Budget</div>
+    <div class="page-sub">Set your spending limit and track progress</div>
+  </div>
+ 
+  <!-- MONTH / YEAR SELECTORS -->
+  <div class="selectors">
+    <div class="field">
+      <label>Month</label>
+      <select id="month">
+        <option value="1">January</option>
+        <option value="2">February</option>
+        <option value="3">March</option>
+        <option value="4">April</option>
+        <option value="5">May</option>
+        <option value="6">June</option>
+        <option value="7">July</option>
+        <option value="8">August</option>
+        <option value="9">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Year</label>
+      <select id="year"></select>
+    </div>
+  </div>
+ 
+  <!-- BUDGET AMOUNT INPUT -->
+  <div class="field">
+    <label>Budget Amount (₹)</label>
+    <input type="number" id="budgetAmount" placeholder="e.g. 15000" min="0">
+  </div>
+ 
+  <!-- BUDGET STATUS CARD -->
+  <div class="budget-status" id="statusCard">
+    <div class="budget-row">
+      <div>
+        <div class="budget-label">Budget Set</div>
+        <div class="budget-value set" id="displayBudget">₹0</div>
+      </div>
+      <div style="text-align:right">
+        <div class="budget-label">Total Spent</div>
+        <div class="budget-value spent" id="displaySpent">₹0</div>
+      </div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Spent</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <div>
+      <span class="status-badge badge-safe" id="statusBadge">✅ On Track</span>
+      <div style="margin-top:10px; font-size:13px; color:var(--muted)">
+        Remaining: <span id="displayLeft" style="color:var(--success);font-weight:600">₹0</span>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- SAVE BUTTON -->
+  <button class="btn-save" id="saveBtn" onclick="saveBudget()">
+    💾 Save Budget
+  </button>
+ 
+  <div id="message"></div>
+</div>
+ 
+<script>
+  let currentUserId = null;
+ 
+  window.onload = function () {
+    const user = sessionStorage.getItem('userName');
+    const uid  = sessionStorage.getItem('userId');
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUserId = uid || 1;
+ 
+    // Fill year dropdown
+    const yearSel = document.getElementById('year');
+    const now = new Date();
+    for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y;
+      if (y === now.getFullYear()) opt.selected = true;
+      yearSel.appendChild(opt);
+    }
+ 
+    // Set current month
+    document.getElementById('month').value = now.getMonth() + 1;
+ 
+    // Load on change
+    document.getElementById('month').addEventListener('change', loadStatus);
+    document.getElementById('year').addEventListener('change', loadStatus);
+ 
+    loadStatus();
+  };
+ 
+  function loadStatus() {
+    const month  = document.getElementById('month').value;
+    const year   = document.getElementById('year').value;
+ 
+    // Fetch budget
+    fetch(`SetBudgetServlet?month=${month}&year=${year}&userId=${currentUserId}`)
+      .then(r => r.json())
+      .then(data => {
+        const budget = data.amount || 0;
+        document.getElementById('budgetAmount').value = budget > 0 ? budget : '';
+        fetchSpentAndUpdate(budget, month, year);
+      })
+      .catch(() => fetchSpentAndUpdate(0, month, year));
+  }
+ 
+  function fetchSpentAndUpdate(budget, month, year) {
+    // Fetch expenses for the selected month/year
+    fetch('GetExpensesServlet')
+      .then(r => r.json())
+      .then(expenses => {
+        const spent = expenses
+          .filter(e => {
+            if (!e.date) return false;
+            const d = new Date(e.date);
+            return (d.getMonth() + 1) == month && d.getFullYear() == year;
+          })
+          .reduce((sum, e) => sum + e.amount, 0);
+ 
+        updateUI(budget, spent);
+      })
+      .catch(() => updateUI(budget, 0));
+  }
+ 
+  function updateUI(budget, spent) {
+    const remaining = budget - spent;
+    const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+ 
+    document.getElementById('displayBudget').textContent = '₹' + fmt(budget);
+    document.getElementById('displaySpent').textContent  = '₹' + fmt(spent);
+    document.getElementById('progressPct').textContent   = pct.toFixed(0) + '%';
+ 
+    const bar = document.getElementById('progressFill');
+    bar.style.width = pct + '%';
+ 
+    const leftEl = document.getElementById('displayLeft');
+    const badge  = document.getElementById('statusBadge');
+ 
+    if (budget === 0) {
+      bar.classList.remove('danger');
+      leftEl.style.color = 'var(--muted)';
+      leftEl.textContent = '₹0';
+      badge.className = 'status-badge badge-safe';
+      badge.textContent = '📋 No budget set';
+    } else if (spent > budget) {
+      bar.classList.add('danger');
+      leftEl.style.color = 'var(--error)';
+      leftEl.textContent = '-₹' + fmt(Math.abs(remaining));
+      badge.className = 'status-badge badge-danger';
+      badge.textContent = '🚨 Over Budget!';
+    } else if (pct >= 80) {
+      bar.classList.add('danger');
+      leftEl.style.color = 'var(--warning)';
+      leftEl.textContent = '₹' + fmt(remaining);
+      badge.className = 'status-badge badge-warning';
+      badge.textContent = '⚠️ Almost Over!';
+    } else {
+      bar.classList.remove('danger');
+      leftEl.style.color = 'var(--success)';
+      leftEl.textContent = '₹' + fmt(remaining);
+      badge.className = 'status-badge badge-safe';
+      badge.textContent = '✅ On Track';
+    }
+  }
+ 
+  function fmt(n) {
+    return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0 });
+  }
+ 
+  function saveBudget() {
+    const amount = parseFloat(document.getElementById('budgetAmount').value);
+    const month  = parseInt(document.getElementById('month').value);
+    const year   = parseInt(document.getElementById('year').value);
+    const msg    = document.getElementById('message');
+    const btn    = document.getElementById('saveBtn');
+ 
+    if (!amount || amount <= 0) {
+      msg.className = 'msg-error';
+      msg.textContent = '⚠️ Please enter a valid budget amount';
+      return;
+    }
+ 
+    btn.textContent = 'Saving…'; btn.disabled = true;
+ 
+    fetch('SetBudgetServlet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, month, year, userId: parseInt(currentUserId) })
+    })
+    .then(r => r.text())
+    .then(result => {
+      if (result === 'SAVED' || result === 'UPDATED') {
+        msg.className = 'msg-success';
+        msg.textContent = result === 'UPDATED'
+          ? '✓ Budget updated successfully!'
+          : '✓ Budget saved successfully!';
+        loadStatus();
+      } else {
+        msg.className = 'msg-error';
+        msg.textContent = '✗ ' + result;
+      }
+      btn.textContent = '💾 Save Budget'; btn.disabled = false;
+      setTimeout(() => msg.textContent = '', 3000);
+    })
+    .catch(() => {
+      msg.className = 'msg-error';
+      msg.textContent = '✗ Connection error';
+      btn.textContent = '💾 Save Budget'; btn.disabled = false;
+    });
+  }
+ 
+  function doLogout() {
+    sessionStorage.clear();
+    fetch('LogoutServlet').finally(() => { window.location.href = 'login.html'; });
+  }
+</script>
+</body>
+</html>

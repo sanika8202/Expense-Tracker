@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — ExpenseAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #7c6cfc;
+    --accent2: #fc6cc8;
+    --accent3: #6cfcd8;
+    --text: #f0effe;
+    --muted: #7a7a9a;
+    --success: #4ade80;
+    --error: #f87171;
+  }
+ 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+ 
+  body::before {
+    content: '';
+    position: fixed;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(124,108,252,0.15) 0%, transparent 70%);
+    top: -100px; left: -100px;
+    border-radius: 50%;
+    animation: blob1 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+ 
+  body::after {
+    content: '';
+    position: fixed;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(252,108,200,0.1) 0%, transparent 70%);
+    bottom: -100px; right: -100px;
+    border-radius: 50%;
+    animation: blob2 10s ease-in-out infinite;
+    pointer-events: none;
+  }
+ 
+  @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,40px) scale(1.1)} }
+  @keyframes blob2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-40px,-60px) scale(1.15)} }
+ 
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 44px 40px;
+    width: 420px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 80px rgba(124,108,252,0.08), 0 40px 80px rgba(0,0,0,0.5);
+    animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+ 
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+ 
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+ 
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+ 
+  .logo-text h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--text) 60%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+ 
+  .logo-text p {
+    font-size: 12px;
+    color: var(--muted);
+  }
+ 
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+ 
+  .page-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+ 
+  .field {
+    margin-bottom: 16px;
+  }
+ 
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+ 
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+ 
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,108,252,0.15);
+  }
+ 
+  input::placeholder { color: var(--muted); }
+ 
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #9c6cfc);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.02em;
+  }
+ 
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(124,108,252,0.4);
+  }
+ 
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+ 
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+ 
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+ 
+  .register-link {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+ 
+  .register-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+ 
+  .register-link a:hover { color: var(--accent2); }
+ 
+  #message {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 20px;
+    padding: 10px;
+    border-radius: 8px;
+    display: none;
+  }
+ 
+  .msg-success {
+    display: block !important;
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.2);
+    color: var(--success);
+  }
+ 
+  .msg-error {
+    display: block !important;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.2);
+    color: var(--error);
+  }
+</style>
+</head>
+<body>
+ 
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">💸</div>
+    <div class="logo-text">
+      <h1>ExpenseAI</h1>
+      <p>Smart Finance Tracker</p>
+    </div>
+  </div>
+ 
+  <div class="page-title">Welcome back</div>
+  <div class="page-sub">Login to your account</div>
+ 
+  <div class="field">
+    <label>Email Address</label>
+    <input type="email" id="email" placeholder="you@example.com" required>
+  </div>
+ 
+  <div class="field">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="Enter your password" required>
+  </div>
+ 
+  <button class="btn-primary" onclick="doLogin()" id="loginBtn">
+    Login →
+  </button>
+ 
+  <div id="message"></div>
+ 
+  <div class="divider">Don't have an account?</div>
+ 
+  <div class="register-link">
+    <a href="register.html">Create account →</a>
+  </div>
+</div>
+ 
+<script>
+  function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const msg      = document.getElementById('message');
+    const btn      = document.getElementById('loginBtn');
+ 
+    if (!email || !password) {
+      msg.className = 'msg-error';
+      msg.textContent = '⚠️ Please fill all fields';
+      return;
+    }
+ 
+    btn.textContent = 'Logging in…';
+    btn.disabled = true;
+ 
+    fetch('LoginServlet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+    .then(r => r.text())
+    .then(result => {
+      if (result.startsWith('SUCCESS:')) {
+        const name = result.split(':')[1];
+        sessionStorage.setItem('userName', name);
+        msg.className = 'msg-success';
+        msg.textContent = '✓ Welcome, ' + name + '! Redirecting…';
+        setTimeout(() => window.location.href = 'index.html', 1000);
+      } else if (result === 'INVALID') {
+        msg.className = 'msg-error';
+        msg.textContent = '✗ Invalid email or password';
+        btn.textContent = 'Login →';
+        btn.disabled = false;
+      } else {
+        msg.className = 'msg-error';
+        msg.textContent = '✗ Server error. Try again.';
+        btn.textContent = 'Login →';
+        btn.disabled = false;
+      }
+    })
+    .catch(() => {
+      msg.className = 'msg-error';
+      msg.textContent = '✗ Connection error';
+      btn.textContent = 'Login →';
+      btn.disabled = false;
+    });
+  }
+ 
+  // Enter key support
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+</script>
+ 
+</body>
+</html>
